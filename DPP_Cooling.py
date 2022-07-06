@@ -6,13 +6,24 @@ import sample_LDPP as ldpp
 import scipy
 from scipy.spatial.distance import pdist, squareform
 
+"""
+
+Comments
+
+Strong effect of data transformations (frequency of maxima)
+"spikiness" of quality scores
+
+
+"""
+
 """ First I'll define my curve """
 
-bounds = np.linspace(-10, 10, 250)
-#curve = bounds *np.sin(bounds) / 10
-#grad = ( bounds + bounds * np.cos(bounds) ) / 10
-curve = np.exp(- bounds**2)
-grad = - bounds * np.exp(- bounds**2)
+bounds = np.linspace(-70, 70, 250)
+frequency = 0.1
+curve = bounds *np.sin(frequency * bounds) / 10
+grad = ( np.sin(frequency * bounds) + frequency * bounds * np.cos(frequency * bounds) ) / 10
+#curve = np.exp(- bounds**2)
+#grad = - bounds * np.exp(- bounds**2)
 sigma = 20
 b_0 = 0
 k = 10
@@ -27,6 +38,7 @@ So the feature vectors in the kernel consist of n-dimensional points
 
 features = np.ones(shape=(len(bounds), 2))
 q = np.ones(shape=(len(bounds)))
+q = np.exp(- grad**2 / 2) * 10
 for i in range(0, len(features)):
     features[i][0] = bounds[i]
     features[i][1] = b_0
@@ -34,22 +46,32 @@ for i in range(0, len(features)):
 S= np.zeros(shape=(len(features), len(features)))
 for i in range(0, len(bounds)):
     for j in range(0, len(bounds)):
-        S[i][j] = np.exp(-np.linalg.norm(features[i] - features[j])**2 / (2 * sigma**2))
+        S[i][j] = q[i]  * np.exp(-np.linalg.norm(features[i] - features[j])**2 / (2 * sigma**2)) * q[j]
 
 evals, evecs = np.linalg.eig(S)
 evals = np.real(evals)
 evecs = np.real(evecs)
 
-#sample = ldpp.sample_exact_k(evals, evecs, k)
-sample = ldpp.sample_exact_k(evals, evecs, 6)
+sample = ldpp.sample_exact(evals, evecs)
+#sample = ldpp.sample_exact_k(evals, evecs, 6)
 
 print(bounds[sample])
 
-plt.title("Init")
+plt.suptitle("Frequency of xsin(wx): {}".format(frequency))
+
+plt.subplot(3, 2, 1)
+plt.title("Sample")
 plt.plot(bounds, curve)
 plt.scatter(bounds[sample], curve[sample], color="red")
-plt.show()
 
+plt.subplot(3, 2, 2)
+plt.title("Gradient")
+plt.plot(bounds, grad)
+
+plt.subplot(3, 2, 3)
+plt.title("Quality")
+plt.plot(bounds, q)
+plt.show()
 """
 Now can we alter the hyperparameter to "cool down" the DPP iteratively
 That is, where the gradient is lower, we want to make those points higher
@@ -60,6 +82,7 @@ For now let's just use a Gaussian function.
 Grad increases ---> higher repulsion. Can try arctan
 """
 
+"""
 n_iter = 500
 
 for i in range(0, n_iter):
@@ -86,6 +109,7 @@ plt.scatter(bounds[sample], curve[sample], color="red")
 plt.show()
 
 plt.plot(bounds, q)
+"""
 
 """ DPP Cooling """
 """
